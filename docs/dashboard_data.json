@@ -1,0 +1,66 @@
+{
+  "equity": 111836.00,
+  "starting_capital": 100000.0,
+  "daily_pnl": 342.50,
+  "daily_pnl_pct": 0.00306,
+  "total_return_pct": 11.84,
+  "n_positions": 4,
+  "delta_exp": 42.5,
+  "regime": "Bull Trend",
+  "regime_id": 1,
+  "regime_probs": [0.15, 0.72, 0.08, 0.05],
+  "halted": false,
+  "vix": 14.85,
+  "wheel_pos": [
+    {
+      "symbol": "SPY",
+      "stage": "CSP",
+      "strike": 540.0,
+      "dte": 28,
+      "premium": 420.0,
+      "pnl": 185.0
+    },
+    {
+      "symbol": "AAPL",
+      "stage": "CC",
+      "strike": 230.0,
+      "dte": 21,
+      "premium": 285.0,
+      "pnl": 95.0
+    },
+    {
+      "symbol": "MSFT",
+      "stage": "CSP",
+      "strike": 435.0,
+      "dte": 35,
+      "premium": 510.0,
+      "pnl": 140.0
+    }
+  ],
+  "ic_pos": [
+    {
+      "underlying": "NVDA",
+      "be_lower": 115.0,
+      "be_upper": 135.0,
+      "dte": 24,
+      "credit": 380.0,
+      "pnl": 120.0
+    }
+  ],
+  "risk": {
+    "daily_pnl": 342.50,
+    "daily_loss_limit": 2000.0,
+    "position_count": 4,
+    "max_positions": 10,
+    "delta_exp": 42.5,
+    "halted": false
+  },
+  "ai_status": {
+    "ppo": "ready",
+    "regime": "ready",
+    "ensemble": "ready",
+    "rust": "ready",
+    "cpp": "ready",
+    "julia": "ready"
+  }
+}
