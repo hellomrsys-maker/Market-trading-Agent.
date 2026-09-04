@@ -27,6 +27,9 @@ class AlpacaSettings(BaseSettings):
 
     api_key: str = Field("paper_demo_key", alias="ALPACA_API_KEY")
     secret_key: str = Field("paper_demo_secret", alias="ALPACA_SECRET_KEY")
+    client_id: str = Field("", alias="ALPACA_CLIENT_ID")
+    client_secret: str = Field("", alias="ALPACA_CLIENT_SECRET")
+    oauth_token: str = Field("", alias="ALPACA_OAUTH_TOKEN")
     base_url: str = Field("https://paper-api.alpaca.markets", alias="ALPACA_BASE_URL")
     data_url: str = Field("https://data.alpaca.markets", alias="ALPACA_DATA_URL")
     paper_account_id: str = Field("", alias="ALPACA_PAPER_ACCOUNT_ID")
@@ -34,6 +37,10 @@ class AlpacaSettings(BaseSettings):
     @property
     def is_paper(self) -> bool:
         return "paper" in self.base_url
+
+    @property
+    def has_oauth(self) -> bool:
+        return bool(self.oauth_token or (self.client_id and self.client_secret))
 
 
 class StrategySettings(BaseSettings):

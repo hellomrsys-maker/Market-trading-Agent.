@@ -69,7 +69,11 @@ class AlpacaClient:
     """
 
     def __init__(self, engine_lib_path: Optional[Path] = None):
-        self._is_live = _ALPACA_SDK_AVAILABLE and _alpaca_cfg.api_key not in ("paper_demo_key", "")
+        has_creds = (
+            (_alpaca_cfg.api_key not in ("paper_demo_key", "") and _alpaca_cfg.secret_key not in ("paper_demo_secret", ""))
+            or bool(_alpaca_cfg.oauth_token)
+        )
+        self._is_live = _ALPACA_SDK_AVAILABLE and has_creds
         self._trading = None
         self._opt_data = None
         self._stk_data = None
@@ -89,21 +93,34 @@ class AlpacaClient:
 
         if self._is_live:
             try:
-                self._trading = TradingClient(
-                    api_key    = _alpaca_cfg.api_key,
-                    secret_key = _alpaca_cfg.secret_key,
-                    paper      = True,
-                )
-                self._opt_data = OptionHistoricalDataClient(
-                    api_key    = _alpaca_cfg.api_key,
-                    secret_key = _alpaca_cfg.secret_key,
-                )
-                self._stk_data = StockHistoricalDataClient(
-                    api_key    = _alpaca_cfg.api_key,
-                    secret_key = _alpaca_cfg.secret_key,
-                )
-                logger.info("AlpacaClient connected to live Paper API (account={})",
-                            _alpaca_cfg.paper_account_id or "Active")
+                if _alpaca_cfg.oauth_token:
+                    self._trading = TradingClient(
+                        oauth_token = _alpaca_cfg.oauth_token,
+                        paper       = True,
+                    )
+                    self._opt_data = OptionHistoricalDataClient(
+                        oauth_token = _alpaca_cfg.oauth_token,
+                    )
+                    self._stk_data = StockHistoricalDataClient(
+                        oauth_token = _alpaca_cfg.oauth_token,
+                    )
+                    logger.info("AlpacaClient connected via OAuth 2.0 Bearer Token (paper=True)")
+                else:
+                    self._trading = TradingClient(
+                        api_key    = _alpaca_cfg.api_key,
+                        secret_key = _alpaca_cfg.secret_key,
+                        paper      = True,
+                    )
+                    self._opt_data = OptionHistoricalDataClient(
+                        api_key    = _alpaca_cfg.api_key,
+                        secret_key = _alpaca_cfg.secret_key,
+                    )
+                    self._stk_data = StockHistoricalDataClient(
+                        api_key    = _alpaca_cfg.api_key,
+                        secret_key = _alpaca_cfg.secret_key,
+                    )
+                    logger.info("AlpacaClient connected to live Paper API (account={})",
+                                _alpaca_cfg.paper_account_id or "Active")
             except Exception as e:
                 logger.warning("Alpaca connection failed ({}) — activating high-fidelity simulation", e)
                 self._is_live = False
