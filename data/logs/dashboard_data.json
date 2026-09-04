@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2026-08-29",
+    "equity": 100180.0,
+    "daily_pnl": 180.0,
+    "n_positions": 2,
+    "regime": "Neutral"
+  },
+  {
+    "date": "2026-08-29",
+    "equity": 100180.0,
+    "daily_pnl": 180.0,
+    "n_positions": 2,
+    "regime": "Neutral"
+  },
+  {
+    "date": "2026-08-30",
+    "equity": 100180.0,
+    "daily_pnl": 180.0,
+    "n_positions": 2,
+    "regime": "Neutral"
+  }
+]

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OptionAlpha Agent — Live P&L Dashboard</title>
+<meta name="description" content="Real-time autonomous options trading dashboard powered by self-developed AI">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────────────────── -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-mark">Ω</div>
+    <div>
+      <h1 class="brand">OptionAlpha Agent</h1>
+      <p class="brand-sub">Autonomous AI Options Trading · Paper Account</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill" id="status-pill">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">Loading…</span>
+    </div>
+    <div class="clock" id="live-clock">--:--:-- ET</div>
+  </div>
+</header>
+
+<!-- ── KPI Cards ──────────────────────────────────────────── -->
+<section class="kpi-grid">
+  <div class="kpi-card" id="kpi-equity">
+    <div class="kpi-label">Portfolio Value</div>
+    <div class="kpi-value" id="equity-val">$—</div>
+    <div class="kpi-delta" id="equity-return">—</div>
+  </div>
+  <div class="kpi-card" id="kpi-pnl">
+    <div class="kpi-label">Daily P&L</div>
+    <div class="kpi-value" id="pnl-val">$—</div>
+    <div class="kpi-delta" id="pnl-pct">—</div>
+  </div>
+  <div class="kpi-card" id="kpi-pos">
+    <div class="kpi-label">Open Positions</div>
+    <div class="kpi-value" id="pos-val">—</div>
+    <div class="kpi-delta">of 10 max</div>
+  </div>
+  <div class="kpi-card" id="kpi-regime">
+    <div class="kpi-label">Market Regime</div>
+    <div class="kpi-value regime-badge" id="regime-val">Neutral</div>
+    <div class="kpi-delta" id="regime-sub">Transformer model</div>
+  </div>
+</section>
+
+<!-- ── Equity Curve ───────────────────────────────────────── -->
+<section class="panel panel-wide">
+  <div class="panel-header">
+    <span class="panel-title">Equity Curve</span>
+    <div class="chart-legend">
+      <span class="legend-dot dot-equity"></span> Portfolio
+      <span class="legend-dot dot-benchmark"></span> SPY Benchmark
+    </div>
+  </div>
+  <div class="chart-wrap">
+    <canvas id="equity-chart"></canvas>
+  </div>
+</section>
+
+<!-- ── Positions + Allocation ────────────────────────────── -->
+<section class="two-col">
+  <!-- Positions Table -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Active Positions</span>
+      <span class="badge" id="pos-count-badge">0</span>
+    </div>
+    <table class="positions-table" id="positions-table">
+      <thead>
+        <tr>
+          <th>Symbol</th><th>Strategy</th><th>Strike</th>
+          <th>DTE</th><th>Premium</th><th>P&L</th>
+        </tr>
+      </thead>
+      <tbody id="positions-body">
+        <tr><td colspan="6" class="empty-row">No positions yet</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Strategy Donut -->
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Strategy Allocation</span>
+    </div>
+    <div class="donut-wrap">
+      <canvas id="donut-chart"></canvas>
+    </div>
+    <div class="donut-legend" id="donut-legend"></div>
+  </div>
+</section>
+
+<!-- ── Risk Metrics ──────────────────────────────────────── -->
+<section class="panel panel-wide">
+  <div class="panel-header">
+    <span class="panel-title">Risk Metrics</span>
+    <span class="circuit-breaker" id="circuit-breaker-badge">CIRCUIT BREAKER: OFF</span>
+  </div>
+  <div class="risk-grid">
+    <div class="risk-meter">
+      <div class="risk-label">Daily Loss Used</div>
+      <div class="progress-bar"><div class="progress-fill danger" id="loss-bar"></div></div>
+      <div class="risk-val" id="loss-used">$0 / $2,000</div>
+    </div>
+    <div class="risk-meter">
+      <div class="risk-label">Position Capacity</div>
+      <div class="progress-bar"><div class="progress-fill normal" id="pos-bar"></div></div>
+      <div class="risk-val" id="pos-used">0 / 10</div>
+    </div>
+    <div class="risk-meter">
+      <div class="risk-label">Delta Exposure</div>
+      <div class="progress-bar"><div class="progress-fill warning" id="delta-bar"></div></div>
+      <div class="risk-val" id="delta-used">$0 / $500</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Trade Log ─────────────────────────────────────────── -->
+<section class="panel panel-wide">
+  <div class="panel-header">
+    <span class="panel-title">Trade Log</span>
+    <span class="panel-sub" id="last-update">Last update: —</span>
+  </div>
+  <div class="trade-log" id="trade-log">
+    <div class="log-entry log-info">Agent initialising…</div>
+  </div>
+</section>
+
+<!-- ── AI Brain Status ───────────────────────────────────── -->
+<section class="panel panel-wide">
+  <div class="panel-header">
+    <span class="panel-title">AI Brain — Self-Developed Models</span>
+  </div>
+  <div class="ai-grid">
+    <div class="ai-card">
+      <div class="ai-icon">🧠</div>
+      <div class="ai-label">PPO RL Agent</div>
+      <div class="ai-sub">Discrete action selection</div>
+      <div class="ai-status" id="ai-ppo">Loading…</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🔭</div>
+      <div class="ai-label">Regime Transformer</div>
+      <div class="ai-sub">285K params · 4-class</div>
+      <div class="ai-status" id="ai-regime">Loading…</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">⚡</div>
+      <div class="ai-label">Signal Ensemble</div>
+      <div class="ai-sub">XGB + LGB + CatBoost</div>
+      <div class="ai-status" id="ai-ensemble">Loading…</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🦀</div>
+      <div class="ai-label">Rust Data Engine</div>
+      <div class="ai-sub">IV Rank · FeatureMatrix</div>
+      <div class="ai-status" id="ai-rust">Loading…</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🔩</div>
+      <div class="ai-label">C++ Core Engine</div>
+      <div class="ai-sub">64B atomic state vector</div>
+      <div class="ai-status" id="ai-cpp">Loading…</div>
+    </div>
+    <div class="ai-card">
+      <div class="ai-icon">🧮</div>
+      <div class="ai-label">Julia Math Library</div>
+      <div class="ai-sub">BSM · MC · Greeks</div>
+      <div class="ai-status" id="ai-julia">Loading…</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  OptionAlpha Agent · Paper Trading · Powered by Alpaca API · All AI models self-developed · No external LLMs
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

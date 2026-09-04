@@ -1,0 +1,49 @@
+[package]
+name = "optionalpha-data"
+version = "0.1.0"
+edition = "2021"
+description = "High-throughput market data ingestion & preprocessing for OptionAlpha Agent"
+authors = ["OptionAlpha Agent"]
+
+[lib]
+name = "optionalpha_data"
+# PyO3 extension module — builds as a .pyd (Windows) / .so (Unix)
+crate-type = ["cdylib"]
+
+[dependencies]
+# PyO3: Python ↔ Rust zero-copy bridge
+pyo3 = { version = "0.21", features = ["extension-module", "abi3-py311"] }
+
+# Fast numerical types
+bytemuck = { version = "1.16", features = ["derive"] }
+
+# Lock-free data structures
+crossbeam = "0.8"
+crossbeam-channel = "0.5"
+
+# Atomic primitives
+atomic = "0.6"
+
+# DateTime
+chrono = { version = "0.4", features = ["serde"] }
+
+# Serialisation (JSON / msgpack for IPC with Java layer)
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Fast hashing
+ahash = "0.8"
+
+# Async runtime for WebSocket market data feed
+tokio = { version = "1", features = ["rt-multi-thread", "net", "io-util", "macros", "time"] }
+tokio-tungstenite = { version = "0.23", features = ["native-tls"] }
+futures-util = "0.3"
+
+# HTTP client for REST fallback
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+panic = "abort"

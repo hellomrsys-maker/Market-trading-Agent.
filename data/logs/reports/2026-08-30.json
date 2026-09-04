@@ -1,0 +1,97 @@
+{
+  "date": "2026-08-30",
+  "timestamp": "2026-08-30T01:44:21.444714",
+  "account": {
+    "equity": 100180.0,
+    "daily_pnl": 180.0,
+    "n_opt_pos": 2
+  },
+  "daily_pnl": 180.0,
+  "total_return_pct": 0.18,
+  "n_positions": 2,
+  "wheel_positions": [
+    {
+      "symbol": "NVDA",
+      "stage": "CSP",
+      "strike": 115.0,
+      "expiry": "2025-06-20",
+      "dte": 45,
+      "premium": 280.0
+    }
+  ],
+  "ic_positions": [
+    {
+      "symbol": "QQQ",
+      "dte": 45,
+      "credit": 115.0,
+      "max_loss": 385.0,
+      "wing_width": 5.0,
+      "be_lower": 408.85,
+      "be_upper": 431.15
+    }
+  ],
+  "risk": {
+    "halted": false,
+    "daily_pnl": 180.0,
+    "position_count": 2,
+    "max_positions": 10,
+    "vix": 14.8
+  },
+  "memory": {
+    "total_trades": 1,
+    "win_rate_20": 1.0,
+    "avg_pnl_pct_10": 0.5,
+    "strategy_stats": {
+      "WHEEL_CSP": {
+        "count": 1,
+        "win_rate": 1.0,
+        "avg_pnl_pct": 0.5,
+        "total_pnl": 150.0
+      },
+      "WHEEL_CC": {
+        "count": 0,
+        "win_rate": 0.5,
+        "avg_pnl_pct": 0.0
+      },
+      "IRON_CONDOR": {
+        "count": 0,
+        "win_rate": 0.5,
+        "avg_pnl_pct": 0.0
+      }
+    },
+    "recent_5": [
+      {
+        "symbol": "SPY",
+        "strategy": "WHEEL_CSP",
+        "pnl": 150.0,
+        "reason": "profit_take"
+      }
+    ]
+  },
+  "regime": "Neutral",
+  "ai_status": {
+    "ppo": "ready",
+    "regime": "ready",
+    "ensemble": "ready",
+    "rust": "ready",
+    "cpp": "ready",
+    "julia": "ready"
+  },
+  "trades_today": [
+    {
+      "symbol": "SPY",
+      "strategy": "WHEEL_CSP",
+      "action": "CLOSE",
+      "strike": "$480.00",
+      "premium": 3.45,
+      "pnl": 180.0
+    }
+  ],
+  "cumulative_stats": {
+    "trading_days": 3,
+    "cumulative_pnl": 180.0,
+    "max_drawdown_pct": 0.0,
+    "sharpe": -314970.3942,
+    "winning_days": 3
+  }
+}

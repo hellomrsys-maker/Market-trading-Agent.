@@ -1,0 +1,42 @@
+[
+  {
+    "symbol": "SPY",
+    "strategy": "WHEEL_CSP",
+    "option_symbol": "SPY250620P00480000",
+    "strike": 480.0,
+    "expiry": "2025-06-20",
+    "dte_at_open": 45,
+    "premium_received": 300.0,
+    "pnl": 150.0,
+    "pnl_pct": 0.5,
+    "opened_at": "2025-01-01",
+    "closed_at": "2025-01-15",
+    "days_held": 14,
+    "close_reason": "profit_take",
+    "iv_rank_at_open": 45.0,
+    "regime_at_open": "Neutral",
+    "ensemble_signal": 0.75,
+    "ensemble_conf": 0.8,
+    "was_profitable": true
+  },
+  {
+    "symbol": "SPY",
+    "strategy": "WHEEL_CSP",
+    "option_symbol": "SPY260918P00480000",
+    "strike": 480.0,
+    "expiry": "2026-09-18",
+    "dte_at_open": 30,
+    "premium_received": 350.0,
+    "pnl": 175.0,
+    "pnl_pct": 0.5,
+    "opened_at": "2026-08-01",
+    "closed_at": "2026-08-15",
+    "days_held": 14,
+    "close_reason": "profit_take",
+    "iv_rank_at_open": 42.0,
+    "regime_at_open": "Neutral",
+    "ensemble_signal": 0.85,
+    "ensemble_conf": 0.8,
+    "was_profitable": true
+  }
+]

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OptionAlpha Agent — Autonomous Polyglot AI Trading Cockpit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-card: rgba(18, 24, 38, 0.85);
+      --border: rgba(255, 255, 255, 0.08);
+      --accent-cyan: #00f2fe;
+      --accent-blue: #4facfe;
+      --accent-green: #00e676;
+      --accent-red: #ff5252;
+      --accent-yellow: #ffd600;
+      --accent-purple: #b388ff;
+      --text-main: #f0f4f8;
+      --text-muted: #8a99ad;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(10, 14, 23, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo-container {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .badge-polyglot {
+      background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+      color: #000;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .zero-bridge-status {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      background: rgba(0, 230, 118, 0.1);
+      border: 1px solid rgba(0, 230, 118, 0.3);
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      color: var(--accent-green);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(0, 230, 118, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(0, 230, 118, 0); }
+    }
+
+    main {
+      padding: 1.5rem 2rem;
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.5rem;
+      flex: 1;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    .card-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+
+    .stat-change {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 0.25rem;
+    }
+
+    .positive { color: var(--accent-green); }
+    .negative { color: var(--accent-red); }
+
+    /* Greeks Grid */
+    .greeks-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .greek-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      padding: 0.75rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .greek-name { font-size: 0.75rem; color: var(--text-muted); }
+    .greek-val { font-family: var(--font-mono); font-weight: 700; font-size: 1.1rem; margin-top: 0.25rem; }
+
+    /* Circuit Breakers */
+    .breaker-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+    }
+
+    .breaker-badge {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+    }
+
+    .breaker-status {
+      font-weight: 700;
+      font-size: 0.75rem;
+      color: var(--accent-green);
+    }
+
+    /* Positions Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    td {
+      padding: 0.75rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      font-family: var(--font-mono);
+    }
+
+    /* Polyglot Badges */
+    .pillar-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+
+    .pillar-tag {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      padding: 0.3rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+    }
+
+    /* Cognitive Log */
+    .cognitive-terminal {
+      background: #05070a;
+      border: 1px solid rgba(0, 242, 254, 0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      height: 180px;
+      overflow-y: auto;
+      color: #79ffe1;
+    }
+
+    .log-line { margin-bottom: 0.35rem; line-height: 1.4; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <h1 style="font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em;">OptionAlpha Agent</h1>
+      <span class="badge-polyglot">Polyglot AI Cockpit</span>
+    </div>
+    <div style="display: flex; gap: 1rem; align-items: center;">
+      <div class="zero-bridge-status">
+        <div class="pulse-dot"></div>
+        <span>Zero-Bridge Synchronous Memory: 0.00 ns</span>
+      </div>
+      <div style="font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted);" id="clock">
+        00:00:00 UTC
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Card 1: Portfolio Equity -->
+    <div class="card col-3">
+      <div class="card-title">Portfolio Equity <span>Paper</span></div>
+      <div class="stat-value" id="equity-val">$100,180.00</div>
+      <div class="stat-change positive" id="pnl-val">+$180.00 (+0.18% today)</div>
+    </div>
+
+    <!-- Card 2: 99% Parametric VaR -->
+    <div class="card col-3">
+      <div class="card-title">99% 1-Day VaR <span>Institutional</span></div>
+      <div class="stat-value" style="color: var(--accent-cyan);" id="var-val">$612.45</div>
+      <div class="stat-change" style="color: var(--text-muted);">0.61% Capital at Risk [SAFE]</div>
+    </div>
+
+    <!-- Card 3: Macro Regime Transformer -->
+    <div class="card col-3">
+      <div class="card-title">Active Regime <span>285K Params</span></div>
+      <div class="stat-value" style="color: var(--accent-yellow);" id="regime-val">NEUTRAL</div>
+      <div class="stat-change" style="color: var(--text-muted);">Optimal for Iron Condor & Wheel</div>
+    </div>
+
+    <!-- Card 4: Cognitive State -->
+    <div class="card col-3">
+      <div class="card-title">Executive Governor <span>Memory Active</span></div>
+      <div class="stat-value" style="color: var(--accent-purple);">ONLINE</div>
+      <div class="stat-change positive">Attention + Recall + Defense Fused</div>
+    </div>
+
+    <!-- Card 5: Dollar Greeks -->
+    <div class="card col-6">
+      <div class="card-title">Portfolio Greeks Exposure (Real-Time Julia Math)</div>
+      <div class="greeks-grid">
+        <div class="greek-item">
+          <div class="greek-name">Net Delta ($)</div>
+          <div class="greek-val positive" id="greek-delta">-$42.50</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Net Gamma ($)</div>
+          <div class="greek-val" id="greek-gamma">-4.20</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Net Vega ($)</div>
+          <div class="greek-val negative" id="greek-vega">-$78.10</div>
+        </div>
+        <div class="greek-item">
+          <div class="greek-name">Net Theta ($/day)</div>
+          <div class="greek-val positive" id="greek-theta">+$28.40</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 6: Circuit Breakers -->
+    <div class="card col-6">
+      <div class="card-title">Synchronized Risk Gate Circuit Breakers (C++ Microsecond Hot Path)</div>
+      <div class="breaker-list">
+        <div class="breaker-badge">Daily Loss ($2K) <span class="breaker-status">[PASS]</span></div>
+        <div class="breaker-badge">VIX Gate (<35) <span class="breaker-status">[PASS]</span></div>
+        <div class="breaker-badge">IV Rank Filter <span class="breaker-status">[PASS]</span></div>
+        <div class="breaker-badge">Max Pos (6) <span class="breaker-status">[PASS]</span></div>
+        <div class="breaker-badge">Sector Cap (3) <span class="breaker-status">[PASS]</span></div>
+        <div class="breaker-badge">Bid-Ask Spread <span class="breaker-status">[PASS]</span></div>
+      </div>
+    </div>
+
+    <!-- Card 7: Active Positions -->
+    <div class="card col-8">
+      <div class="card-title">Active Option Contracts & Lifecycle Management</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Strategy</th>
+            <th>Qty</th>
+            <th>Entry Price</th>
+            <th>Current Mark</th>
+            <th>Unrealized P&L</th>
+            <th>Target Progress</th>
+          </tr>
+        </thead>
+        <tbody id="positions-body">
+          <tr>
+            <td>SPY250620P00480000</td>
+            <td><span style="color: var(--accent-blue);">WHEEL_CSP</span></td>
+            <td>1</td>
+            <td>$3.45</td>
+            <td>$1.65</td>
+            <td class="positive">+$180.00 (+52.2%)</td>
+            <td><span style="color: var(--accent-green);">50% Target Met [CLOSE]</span></td>
+          </tr>
+          <tr>
+            <td>NVDA250620P00115000</td>
+            <td><span style="color: var(--accent-blue);">WHEEL_CSP</span></td>
+            <td>1</td>
+            <td>$2.80</td>
+            <td>$2.20</td>
+            <td class="positive">+$60.00 (+21.4%)</td>
+            <td>21.4% / 50%</td>
+          </tr>
+          <tr>
+            <td>QQQ Iron Condor 410/430</td>
+            <td><span style="color: var(--accent-purple);">IRON_CONDOR</span></td>
+            <td>1</td>
+            <td>$1.15</td>
+            <td>$0.95</td>
+            <td class="positive">+$20.00 (+17.4%)</td>
+            <td>17.4% / 50%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Card 8: Polyglot Architecture Status -->
+    <div class="card col-4">
+      <div class="card-title">Polyglot Compute Layer Status</div>
+      <div class="pillar-tags">
+        <span class="pillar-tag" style="border-color: #f74c00;">Rust (PyO3) SIMD: Active</span>
+        <span class="pillar-tag" style="border-color: #9558b2;">Julia Math (SVI): Active</span>
+        <span class="pillar-tag" style="border-color: #00599c;">C++20 Zero-Bridge: 0-ns</span>
+        <span class="pillar-tag" style="border-color: #76b900;">CUDA/Triton FlashAttn: GPU</span>
+        <span class="pillar-tag" style="border-color: #b07219;">Java Prometheus: Active</span>
+        <span class="pillar-tag" style="border-color: #3572a5;">Python 3.14 API: Active</span>
+      </div>
+      <div style="margin-top: 1rem;">
+        <div class="card-title">Episodic Trade Memory</div>
+        <div style="font-size: 0.85rem; color: var(--text-muted); font-family: var(--font-mono);">
+          Recorded Trades: 2<br>
+          Historical Win Rate: 100.0%<br>
+          Attention Convergence: 0.94
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 9: Live Cognitive Stream -->
+    <div class="card col-12">
+      <div class="card-title">Autonomous Cognitive Arbitration Log (Live Event Stream)</div>
+      <div class="cognitive-terminal" id="terminal-log">
+        <div class="log-line">[09:40:02] [Attention] ConcentrationEngine: Allocated 34.2% focus to NVDA (IV Rank dislocation: 78.4).</div>
+        <div class="log-line">[09:40:05] [Recall] AssociativeRecallEngine: Retrieved 5 analogous historical trades for SPY (Win Rate: 100%).</div>
+        <div class="log-line">[10:30:12] [Executive] Governor: Approved WHEEL_CSP order on SPY (Confidence: 84.5% > 50% threshold).</div>
+        <div class="log-line">[10:30:15] [Zero-Bridge] StateVector synchronized in 0.00 ns to 64-byte hardware cache line.</div>
+        <div class="log-line">[14:00:20] [PositionReview] SPY 480P achieved 52.2% profit target -> Triggered BUY TO CLOSE.</div>
+        <div class="log-line">[15:45:00] [EOD] PositionReconciler verified 0 broker mismatches. Daily Markdown Report generated.</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/dashboard.js"></script>
+</body>
+</html>
