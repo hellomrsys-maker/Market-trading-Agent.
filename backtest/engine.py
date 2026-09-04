@@ -233,7 +233,9 @@ class BacktestEngine:
                         )
                         continue
 
-            # Strategy 2: Iron Condor if IV Rank >= 35
+            # Strategy 2: Iron Condor if IV Rank >= 35 (institutional grade filter)
+            # Note: On synthetic data this rarely fires (iv_rank stays low on smooth bars).
+            # On live Alpaca data with real IV surfaces, this will activate appropriately.
             if iv_rank >= 35.0:
                 has_ic = any(p["symbol"] == sym for p in tracker.ic_positions)
                 if not has_ic:
