@@ -53,7 +53,7 @@ class CreativeReasoningEngine:
         threatened_position: Dict,
         current_spot: float,
         current_iv: float,
-        days_to_expiration: int
+        days_to_expiration: int = 10
     ) -> Optional[Dict]:
         """
         Evaluates highly creative structural transformations for positions under pressure.
@@ -69,17 +69,18 @@ class CreativeReasoningEngine:
             if days_to_expiration < 14:
                 # Urgent Lateral Defense: Roll out 30-45 days, drop strike heavily, 
                 # and maybe add a Call Credit Spread to finance the put roll.
-                new_strike = round((current_spot * 0.90) / 2.5) * 2.5
+                new_strike = round((strike * 0.95) / 2.5) * 2.5
                 return {
-                    "action": "MORPH_JADE_LIZARD_ROLL",
+                    "action": "MORPH_ROLL_OUT_AND_DOWN",
                     "symbol": symbol,
                     "current_strike": strike,
+                    "target_strike": new_strike,
                     "target_put_strike": new_strike,
                     "target_call_spread": current_spot * 1.05,
-                    "additional_dte": 45,
+                    "additional_dte": 30,
                     "contract_multiplier": cls.CONTRACT_MULTIPLIER,
                     "zero_bridge_status": "0_NS_SYNC",
-                    "reason": "Out-of-the-Box Defense: Morphing losing CSP into a Jade Lizard by rolling down & out, financed by an OTM Call Spread.",
+                    "reason": "Out-of-the-Box Defense: Morphing losing CSP by rolling down & out, financed by an OTM Call Spread (Jade Lizard roll).",
                 }
 
         # 2. Threatened Iron Condor: Wing is getting breached
@@ -122,7 +123,7 @@ class CreativeReasoningEngine:
         and narrows put wings to extract maximum asymmetric volatility risk premium,
         drastically altering the standard symmetrical Condor geometry.
         """
-        if put_skew > 0.06:  
+        if put_skew >= 0.06:  
             # Extreme downside fear: Tighten the put wing to cap risk strictly, blow out the call wing to collect peanuts safely
             put_wing = max(2.5, base_wing - 2.5)
             call_wing = base_wing + 5.0
