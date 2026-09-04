@@ -85,6 +85,33 @@
   </div>
 </section>
 
+<!-- ── Live Performance Strip ──────────────────────────────── -->
+<section class="perf-strip">
+  <div class="perf-item">
+    <div class="perf-label">🏆 Win Rate</div>
+    <div class="perf-value" id="perf-win-rate" style="color:var(--green)">—%</div>
+    <div class="perf-sub">last 20 closed trades</div>
+  </div>
+  <div class="perf-divider"></div>
+  <div class="perf-item">
+    <div class="perf-label">📈 Total Return</div>
+    <div class="perf-value" id="perf-total-return" style="color:var(--green)">—%</div>
+    <div class="perf-sub">vs $100k starting capital</div>
+  </div>
+  <div class="perf-divider"></div>
+  <div class="perf-item">
+    <div class="perf-label">🔁 Closed Trades</div>
+    <div class="perf-value" id="perf-trade-count" style="color:var(--cyan)">— trades</div>
+    <div class="perf-sub">in memory (max 200)</div>
+  </div>
+  <div class="perf-divider"></div>
+  <div class="perf-item">
+    <div class="perf-label">💰 Avg P&L / Trade</div>
+    <div class="perf-value" id="perf-avg-pnl" style="color:var(--green)">—%</div>
+    <div class="perf-sub">last 10 closed trades</div>
+  </div>
+</section>
+
 <!-- ── Toolbar ────────────────────────────────────────────── -->
 <div class="toolbar-wrap">
   <div class="toolbar-title" id="toolbar-view-title">Command Center · Live Portfolio Status</div>
@@ -94,6 +121,7 @@
     <button class="btn" id="btn-export-history">📥 Export CSV</button>
   </div>
 </div>
+
 
 <!-- ========================================================= -->
 <!-- TAB 1: DASHBOARD & POSITIONS                              -->

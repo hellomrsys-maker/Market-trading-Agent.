@@ -1559,7 +1559,7 @@ class AlpacaClient:
             if order_type.lower() == "stop_limit" and stop_price is not None:
                 body["stop_price"] = str(stop_price)
 
-            base_url = "https://paper-api.alpaca.markets/v2/orders" if not _alpaca_cfg.is_live else "https://api.alpaca.markets/v2/orders"
+            base_url = "https://paper-api.alpaca.markets/v2/orders" if _alpaca_cfg.is_paper else "https://api.alpaca.markets/v2/orders"
             try:
                 resp = requests.post(base_url, headers=headers, json=body, timeout=5)
                 req_id = resp.headers.get("X-Request-ID") or resp.headers.get("x-request-id")

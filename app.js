@@ -28,24 +28,7 @@ let activeHistoryFilter = 'all';
 // ─────────────────────────────────────────────────────────────
 // Verified Historical Closed Trades (From 1-Year Backtest)
 // ─────────────────────────────────────────────────────────────
-const TRADE_HISTORY = [
-  { exitDate: '2026-09-02', symbol: 'SPY',  strategy: 'WHEEL_CSP',   strike: '$535 Put',        credit: '$410.00', exitCost: '$45.00',  days: '14d', pnl: 365.00,  pnlPct: '+89.0%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-08-28', symbol: 'AAPL', strategy: 'WHEEL_CC',    strike: '$225 Call',       credit: '$290.00', exitCost: '$30.00',  days: '18d', pnl: 260.00,  pnlPct: '+89.7%', reason: 'Shares Called Away',    win: true },
-  { exitDate: '2026-08-24', symbol: 'NVDA', strategy: 'IRON_CONDOR', strike: '$110P/130C Wings', credit: '$380.00', exitCost: '$720.00', days: '21d', pnl: -340.00, pnlPct: '-89.5%', reason: '200% Max Loss Gate',     win: false },
-  { exitDate: '2026-08-20', symbol: 'MSFT', strategy: 'WHEEL_CSP',   strike: '$430 Put',        credit: '$480.00', exitCost: '$60.00',  days: '12d', pnl: 420.00,  pnlPct: '+87.5%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-08-15', symbol: 'QQQ',  strategy: 'WHEEL_CSP',   strike: '$465 Put',        credit: '$520.00', exitCost: '$80.00',  days: '16d', pnl: 440.00,  pnlPct: '+84.6%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-08-11', symbol: 'BTC',  strategy: 'CRYPTO_SPOT', strike: 'Spot Market',     credit: '$62,400', exitCost: '$65,120', days: '6d',  pnl: 272.00,  pnlPct: '+4.36%', reason: 'RSI Take-Profit Trigger',win: true },
-  { exitDate: '2026-08-06', symbol: 'AMD',  strategy: 'WHEEL_CSP',   strike: '$140 Put',        credit: '$340.00', exitCost: '$50.00',  days: '11d', pnl: 290.00,  pnlPct: '+85.3%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-08-01', symbol: 'AMZN', strategy: 'WHEEL_CC',    strike: '$175 Call',       credit: '$310.00', exitCost: '$40.00',  days: '19d', pnl: 270.00,  pnlPct: '+87.1%', reason: 'Expired Worthless',     win: true },
-  { exitDate: '2026-07-27', symbol: 'SPY',  strategy: 'IRON_CONDOR', strike: '$530P/550C Wings', credit: '$360.00', exitCost: '$90.00',  days: '15d', pnl: 270.00,  pnlPct: '+75.0%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-07-22', symbol: 'NVDA', strategy: 'WHEEL_CSP',   strike: '$115 Put',        credit: '$450.00', exitCost: '$70.00',  days: '13d', pnl: 380.00,  pnlPct: '+84.4%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-07-16', symbol: 'AAPL', strategy: 'WHEEL_CSP',   strike: '$215 Put',        credit: '$270.00', exitCost: '$450.00', days: '25d', pnl: -180.00, pnlPct: '-66.7%', reason: 'Assigned 100 Shares',   win: false },
-  { exitDate: '2026-07-10', symbol: 'MSFT', strategy: 'WHEEL_CC',    strike: '$440 Call',       credit: '$390.00', exitCost: '$45.00',  days: '17d', pnl: 345.00,  pnlPct: '+88.5%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-07-04', symbol: 'QQQ',  strategy: 'IRON_CONDOR', strike: '$460P/480C Wings', credit: '$350.00', exitCost: '$110.00', days: '14d', pnl: 240.00,  pnlPct: '+68.6%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-06-28', symbol: 'SPY',  strategy: 'WHEEL_CSP',   strike: '$525 Put',        credit: '$430.00', exitCost: '$60.00',  days: '15d', pnl: 370.00,  pnlPct: '+86.0%', reason: '50% Profit Target Hit', win: true },
-  { exitDate: '2026-06-22', symbol: 'BTC',  strategy: 'CRYPTO_SPOT', strike: 'Spot Market',     credit: '$66,800', exitCost: '$64,900', days: '3d',  pnl: -190.00, pnlPct: '-2.84%', reason: 'Stop Limit Hit',        win: false },
-  { exitDate: '2026-06-16', symbol: 'AMD',  strategy: 'WHEEL_CC',    strike: '$150 Call',       credit: '$360.00', exitCost: '$55.00',  days: '20d', pnl: 305.00,  pnlPct: '+84.7%', reason: 'Shares Called Away',    win: true }
-];
+let TRADE_HISTORY = []; // Populated dynamically from /api/trade_history
 
 // Active positions snapshot (Live Alpaca Paper Broker)
 const DEMO_POSITIONS = [
@@ -62,7 +45,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharts();
   startClock();
   pollData();
+  pollPerformance();
   setInterval(pollData, POLL_INTERVAL_MS);
+  setInterval(pollPerformance, 10_000);
 });
 
 // ─────────────────────────────────────────────────────────────
@@ -442,6 +427,15 @@ async function pollData() {
     if (data) {
       if (typeof data.equity === 'number') currentEquity = data.equity;
       if (typeof data.daily_pnl === 'number') currentDailyPnl = data.daily_pnl;
+    // Fetch live trade history
+    try {
+      const thResp = await fetch(`${API_BASE}/api/trade_history?limit=200`, { signal: AbortSignal.timeout(2500) });
+      if (thResp.ok) {
+        const thData = await thResp.json();
+        TRADE_HISTORY = thData;
+        renderHistoryTable();
+      }
+    } catch (e) { /* ignore trade history fetch errors */ }
 
       updateKPIs(currentEquity, currentDailyPnl);
 
@@ -573,4 +567,73 @@ function addLog(msg, level = 'info') {
 function fmt$(v) {
   const num = Number(v) || 0;
   return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Live Performance / Win-Rate Polling
+// ─────────────────────────────────────────────────────────────
+async function pollPerformance() {
+  if (window.location.hostname.endsWith('github.io') || window.location.protocol === 'file:') return;
+  try {
+    const resp = await fetch(`${API_BASE}/api/performance`, { signal: AbortSignal.timeout(3000) });
+    if (!resp.ok) return;
+    const d = await resp.json();
+
+    // Update performance strip elements (if present in DOM)
+    const winEl   = document.getElementById('perf-win-rate');
+    const retEl   = document.getElementById('perf-total-return');
+    const cntEl   = document.getElementById('perf-trade-count');
+    const pnlEl   = document.getElementById('perf-avg-pnl');
+
+    if (winEl) {
+      const wr = Number(d.win_rate_pct) || 50;
+      winEl.textContent = wr.toFixed(1) + '%';
+      winEl.style.color = wr >= 60 ? 'var(--green)' : wr >= 50 ? 'var(--yellow, #f59e0b)' : 'var(--red)';
+    }
+    if (retEl) {
+      const ret = Number(d.total_return_pct) || 0;
+      retEl.textContent = (ret >= 0 ? '+' : '') + ret.toFixed(3) + '%';
+      retEl.style.color = ret >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+    if (cntEl) cntEl.textContent = (d.total_trades || 0) + ' trades';
+    if (pnlEl) {
+      const ap = Number(d.avg_pnl_pct) || 0;
+      pnlEl.textContent = (ap >= 0 ? '+' : '') + ap.toFixed(2) + '% avg';
+      pnlEl.style.color = ap >= 0 ? 'var(--green)' : 'var(--red)';
+    }
+
+    // Update strategy breakdown table (#strategy-breakdown-body) if present
+    const sb = document.getElementById('strategy-breakdown-body');
+    if (sb && d.strategy_stats) {
+      sb.innerHTML = Object.entries(d.strategy_stats).map(([strat, s]) => {
+        const wr = ((s.win_rate || 0.5) * 100).toFixed(1);
+        const ap = ((s.avg_pnl_pct || 0) * 100).toFixed(2);
+        const col = wr >= 60 ? 'var(--green)' : 'var(--red)';
+        return `<tr>
+          <td><strong>${strat}</strong></td>
+          <td>${s.count || 0}</td>
+          <td style="color:${col};font-weight:700">${wr}%</td>
+          <td style="color:${ap >= 0 ? 'var(--green)' : 'var(--red)'}">${ap >= 0 ? '+' : ''}${ap}%</td>
+        </tr>`;
+      }).join('');
+    }
+
+    // If trade history is empty in TRADE_HISTORY but recent_5 has data, seed it
+    if (TRADE_HISTORY.length === 0 && d.recent_5 && d.recent_5.length > 0) {
+      TRADE_HISTORY = d.recent_5.map(t => ({
+        exitDate: t.closed || '—',
+        symbol:   t.symbol,
+        strategy: t.strategy,
+        strike:   '—',
+        credit:   '—',
+        exitCost: '—',
+        days:     '—',
+        pnl:      t.pnl,
+        pnlPct:   (t.pnl_pct || 0).toFixed(2) + '%',
+        reason:   t.reason || '—',
+        win:      t.win,
+      }));
+      renderHistoryTable();
+    }
+  } catch (e) { /* silent — performance strip is non-critical */ }
 }

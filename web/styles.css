@@ -175,6 +175,50 @@ body {
   font-weight: 700;
 }
 
+/* ── Live Performance / Win-Rate Strip ──────────────────── */
+.perf-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  background: linear-gradient(90deg, rgba(16,185,129,0.08) 0%, rgba(124,58,237,0.12) 50%, rgba(59,130,246,0.08) 100%);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 32px;
+}
+.perf-item {
+  text-align: center;
+  flex: 1;
+  padding: 4px 24px;
+}
+.perf-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.perf-value {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 18px currentColor;
+  transition: color 0.3s ease;
+}
+.perf-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  margin-top: 3px;
+}
+.perf-divider {
+  width: 1px;
+  height: 44px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
 /* ── Action Toolbar ──────────────────────────────────────── */
 .toolbar-wrap {
   display: flex;

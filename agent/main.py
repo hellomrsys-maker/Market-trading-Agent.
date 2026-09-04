@@ -24,7 +24,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pytz
 import schedule
@@ -312,22 +312,37 @@ class OptionAlphaAgent:
         logger.info("⚡ [APM DISPATCH] Executing top-ranked opportunity: {} on {} (MPPI: {}, Exp ROI: {:.1f}%)",
                     best_trade.strategy_name, best_trade.symbol, best_trade.max_profit_index, best_trade.expected_roi_pct)
 
-        # Dispatch to execution tier
-        if "IRON_CONDOR" in best_trade.strategy_name:
-            self.ic.open_iron_condor(best_trade.symbol, equity, 35.0)
-        elif "LONG_CALL" in best_trade.strategy_name:
+        # Dispatch to execution tier — covers all 17 APM strategy types
+        sn = best_trade.strategy_name
+        sym = best_trade.symbol
+        if "IRON_CONDOR" in sn:
+            self.ic.open_iron_condor(sym, equity, 35.0)
+        elif "LONG_CALL" in sn:
             self.call_engine.scan_long_call(
-                symbol=best_trade.symbol,
+                symbol=sym,
                 spot=best_trade.capital_required / 100.0,
-                chain_contracts=self.client.get_option_chain(best_trade.symbol),
+                chain_contracts=self.client.get_option_chain(sym),
                 bullish_momentum_score=0.03,
                 target_delta=0.50,
                 target_dte=45,
             )
-        elif "COVERED_CALL" in best_trade.strategy_name:
-            self.wheel.open_covered_call(best_trade.symbol, equity)
+        elif "COVERED_CALL" in sn or "WHEEL_COVERED" in sn:
+            self.wheel.open_covered_call(sym, equity)
+        elif "RATIO_BACKSPREAD" in sn or "KACHING" in sn or "EXOTIC" in sn or "MEAN_REVERSION" in sn:
+            # Ratio backspreads, KaChing weekly, exotic multi-leg — execute as CSP
+            # (paper account leg placement mirrors a cash-secured put entry for tracking)
+            logger.info("[APM DISPATCH] {} → executing via Wheel CSP leg for paper account", sn)
+            self.wheel.open_csp(sym, equity)
+        elif "CRYPTO" in sn:
+            # Crypto spot orders
+            side = "buy" if "BUY" in best_trade.action_type else "sell"
+            self.client.place_crypto_order(
+                symbol=sym,
+                notional=min(best_trade.capital_required, equity * 0.10),
+                side=side,
+            )
         else:
-            self.wheel.open_csp(best_trade.symbol, equity)
+            self.wheel.open_csp(sym, equity)
 
         self._daily_trades.append({
             "symbol": best_trade.symbol,

@@ -282,7 +282,7 @@ class ContinuousAutonomousDaemon:
                 notional=min(best_crypto.capital_required, 25000.0),
                 side=side,
             )
-            executed_trade = f"{side.upper()} {best_crypto.symbol} (${order.get('notional', 0):,.2f})"
+            executed_trade = f"{side.upper()} {best_crypto.symbol} (${float(order.get('notional') or 0):,.2f})"
             logger.info("⚡ [24/7 CRYPTO ARBITRAGE EXECUTED] {} -> MPPI: {} | Rationale: {}",
                         executed_trade, best_crypto.max_profit_index, best_crypto.rationale)
 

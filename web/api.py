@@ -24,6 +24,7 @@ from __future__ import annotations
 import json
 import time
 from collections import deque
+from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Deque, Dict, List, Optional
@@ -231,6 +232,106 @@ async def health() -> JSONResponse:
         content={"status": "healthy" if healthy else "stale", "data_age_s": age},
         status_code=200 if healthy else 503,
     )
+
+# ─────────────────────────────────────────────────────────────
+# Live trade history endpoint
+# ─────────────────────────────────────────────────────────────
+@app.get("/api/trade_history", summary="Live trade history (recent trades)")
+async def get_trade_history(limit: int = 200) -> JSONResponse:
+    """Return recent trades recorded by the agent's TradeMemory.
+    The limit parameter caps the number of trades returned (default 200)."""
+    try:
+        from run_agent import _agent_instance
+        if _agent_instance is None:
+            # Agent not yet running; return empty list
+            return JSONResponse(content=[])
+        trades = _agent_instance.memory.recent(limit)
+        # Convert dataclass objects to plain dicts, drop internal fields
+        data = [asdict(t) for t in trades]
+        for d in data:
+            d.pop("was_profitable", None)
+        return JSONResponse(content=data)
+    except ImportError:
+        raise HTTPException(status_code=503, detail="Agent module unavailable")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+# ─────────────────────────────────────────────────────────────
+# Live Performance / Win-Rate Analytics endpoint
+# ─────────────────────────────────────────────────────────────
+
+@app.get("/api/performance", summary="Live win-rate and profit analytics")
+async def get_performance() -> JSONResponse:
+    """
+    Returns real-time win rate, P&L stats, and per-strategy breakdowns
+    computed directly from the agent's TradeMemory (persisted to disk).
+    Safe to call even before any trade is closed.
+    """
+    try:
+        from run_agent import _agent_instance
+        if _agent_instance is not None:
+            mem = _agent_instance.memory
+            snap = state_store.snapshot()
+            equity = snap.get("equity", 100_000.0)
+            starting = 100_000.0
+            total_return_pct = round((equity / starting - 1.0) * 100, 4)
+            return JSONResponse(content={
+                "total_trades":      len(mem),
+                "win_rate_pct":      round(mem.win_rate(20) * 100, 2),
+                "avg_pnl_pct":       round(mem.avg_pnl_pct(10) * 100, 4),
+                "equity":            equity,
+                "total_return_pct":  total_return_pct,
+                "daily_pnl":         snap.get("daily_pnl", 0.0),
+                "strategy_stats":    mem.strategy_stats(),
+                "recent_5":          [
+                    {
+                        "symbol":   r.symbol,
+                        "strategy": r.strategy,
+                        "pnl":      round(r.pnl, 2),
+                        "pnl_pct":  round(r.pnl_pct * 100, 2),
+                        "win":      r.was_profitable,
+                        "reason":   r.close_reason,
+                        "closed":   r.closed_at,
+                    }
+                    for r in mem.recent(5)
+                ],
+                "days_since_last_trade": mem.days_since_last_trade(),
+            })
+    except ImportError:
+        pass
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    # Agent not running — return stub from disk-persisted state_store
+    snap = state_store.snapshot()
+    equity = snap.get("equity", 100_000.0)
+    return JSONResponse(content={
+        "total_trades":      0,
+        "win_rate_pct":      50.0,
+        "avg_pnl_pct":       0.0,
+        "equity":            equity,
+        "total_return_pct":  round((equity / 100_000.0 - 1.0) * 100, 4),
+        "daily_pnl":         snap.get("daily_pnl", 0.0),
+        "strategy_stats":    {},
+        "recent_5":          [],
+        "days_since_last_trade": 999,
+    })
+
+
+@app.get("/api/regime", summary="Detected market regime and AI confidence")
+async def get_regime() -> JSONResponse:
+    """Returns current macro regime, VIX, and AI model confidence scores."""
+    snap = state_store.snapshot()
+    return JSONResponse(content={
+        "regime":       snap.get("regime", "Neutral"),
+        "regime_id":    snap.get("regime_id", 0),
+        "vix":          snap.get("vix", 15.0),
+        "ai_status":    snap.get("ai_status", {}),
+        "halted":       snap.get("halted", False),
+        "halt_reason":  snap.get("halt_reason", ""),
+        "data_age_s":   snap.get("data_age_s", 9999),
+    })
 
 
 # ─────────────────────────────────────────────────────────────
