@@ -21,8 +21,8 @@ let equityChart, donutChart;
 let equityHistory = [];
 let isStaticMode = false;
 let isTickerPaused = false;
-let currentEquity = 111836.00;
-let currentDailyPnl = 342.50;
+let currentEquity = 100000.59;
+let currentDailyPnl = 0.59;
 let activeHistoryFilter = 'all';
 
 // ─────────────────────────────────────────────────────────────
@@ -47,12 +47,9 @@ const TRADE_HISTORY = [
   { exitDate: '2026-06-16', symbol: 'AMD',  strategy: 'WHEEL_CC',    strike: '$150 Call',       credit: '$360.00', exitCost: '$55.00',  days: '20d', pnl: 305.00,  pnlPct: '+84.7%', reason: 'Shares Called Away',    win: true }
 ];
 
-// Active positions snapshot
+// Active positions snapshot (Live Alpaca Paper Broker)
 const DEMO_POSITIONS = [
-  { symbol: 'SPY',  stage: 'CSP', strike: 540.0, dte: 28, premium: 420.0, pnl: 185.0 },
-  { symbol: 'AAPL', stage: 'CC',  strike: 230.0, dte: 21, premium: 285.0, pnl: 95.0 },
-  { symbol: 'MSFT', stage: 'CSP', strike: 435.0, dte: 35, premium: 510.0, pnl: 140.0 },
-  { symbol: 'NVDA', _type: 'ic',  be_lower: 115.0, be_upper: 135.0, dte: 24, credit: 380.0, pnl: 120.0 }
+  { symbol: 'SPY', strategy: 'EQUITY_LONG', strike: '1 shares @ $769.42', dte: 'Open', premium: 769.42, pnl: 0.59 }
 ];
 
 // ─────────────────────────────────────────────────────────────
@@ -393,12 +390,14 @@ function renderPositionsTable(positions) {
   tbody.innerHTML = positions.map(p => {
     const sym = p.symbol || p.underlying || '—';
     const isIC = p._type === 'ic';
-    const strat = isIC ? 'IRON_CONDOR' : (p.stage || 'CSP');
-    const stratClass = isIC ? 'tag-ic' : strat === 'CC' ? 'tag-cc' : 'tag-csp';
-    const strike = isIC ? `$${p.be_lower}–$${p.be_upper}` : `$${p.strike}`;
-    const dte = `${p.dte}d`;
-    const prem = p.premium ? `$${p.premium.toFixed(2)}` : (p.credit ? `$${p.credit.toFixed(2)}` : '—');
-    const pnl = p.pnl !== undefined ? `+$${p.pnl.toFixed(2)}` : '+$110.00';
+    const strat = isIC ? 'IRON_CONDOR' : (p.strategy || p.stage || 'EQUITY_LONG');
+    const stratClass = isIC ? 'tag-ic' : strat.includes('CC') ? 'tag-cc' : strat.includes('EQUITY') ? 'tag-crypto' : 'tag-csp';
+    const strike = p.strike !== undefined ? (typeof p.strike === 'number' ? `$${p.strike.toFixed(2)}` : p.strike) : (isIC ? `$${p.be_lower}–$${p.be_upper}` : '—');
+    const dte = typeof p.dte === 'number' ? `${p.dte}d` : (p.dte || 'Open');
+    const prem = p.premium ? `$${Number(p.premium).toFixed(2)}` : (p.credit ? `$${Number(p.credit).toFixed(2)}` : '—');
+    const pnlNum = Number(p.pnl) || 0;
+    const pnlClass = pnlNum >= 0 ? 'kpi-delta pos' : 'kpi-delta neg';
+    const pnl = `${pnlNum >= 0 ? '+' : '-'}$${Math.abs(pnlNum).toFixed(2)}`;
 
     return `<tr>
       <td><strong>${sym}</strong></td>
@@ -406,13 +405,14 @@ function renderPositionsTable(positions) {
       <td>${strike}</td>
       <td>${dte}</td>
       <td>${prem}</td>
-      <td class="kpi-delta pos">${pnl}</td>
+      <td class="${pnlClass}">${pnl}</td>
     </tr>`;
   }).join('');
 }
 
 // ─────────────────────────────────────────────────────────────
-// Live Polling & Stochastic Ticker
+// ─────────────────────────────────────────────────────────────
+// Live Polling & Real-Time Alpaca Broker Sync
 // ─────────────────────────────────────────────────────────────
 async function pollData() {
   if (isTickerPaused) return;
@@ -423,15 +423,15 @@ async function pollData() {
     // Local FastAPI attempt
     if (!window.location.hostname.endsWith('github.io') && window.location.protocol !== 'file:') {
       try {
-        const resp = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(2000) });
+        const resp = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(2500) });
         if (resp.ok) data = await resp.json();
       } catch (e) { /* fallback */ }
     }
 
-    // Static JSON fallback
+    // Static JSON fallback (queries live dashboard_data.json updated by agent)
     if (!data) {
       try {
-        const resp2 = await fetch('./dashboard_data.json', { signal: AbortSignal.timeout(2000) });
+        const resp2 = await fetch(`./dashboard_data.json?t=${Date.now()}`, { signal: AbortSignal.timeout(2500) });
         if (resp2.ok) {
           const raw = await resp2.json();
           data = Array.isArray(raw) ? raw[raw.length - 1] : raw;
@@ -439,34 +439,88 @@ async function pollData() {
       } catch (e) { /* fallback */ }
     }
 
-    // Realistic stochastic live simulation
-    const tick = (Math.random() - 0.47) * 14.5;
-    currentEquity = Math.round((currentEquity + tick) * 100) / 100;
-    currentDailyPnl = Math.round((currentDailyPnl + tick) * 100) / 100;
+    if (data) {
+      if (typeof data.equity === 'number') currentEquity = data.equity;
+      if (typeof data.daily_pnl === 'number') currentDailyPnl = data.daily_pnl;
 
-    updateKPIs(currentEquity, currentDailyPnl);
+      updateKPIs(currentEquity, currentDailyPnl);
 
-    // Chart tick update
-    if (equityChart) {
-      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      equityHistory.push({ t: nowStr, v: currentEquity });
-      if (equityHistory.length > 50) equityHistory.shift();
-      equityChart.data.labels = equityHistory.map(p => p.t);
-      equityChart.data.datasets[0].data = equityHistory.map(p => p.v);
-      equityChart.update('none');
-    }
+      // Render real live positions from Alpaca feed
+      const activePositions = [];
+      if (Array.isArray(data.positions) && data.positions.length) {
+        data.positions.forEach(p => activePositions.push(p));
+      }
+      if (Array.isArray(data.wheel_pos)) {
+        data.wheel_pos.forEach(p => activePositions.push(p));
+      }
+      if (Array.isArray(data.ic_pos)) {
+        data.ic_pos.forEach(p => activePositions.push({ ...p, _type: 'ic' }));
+      }
+      if (activePositions.length > 0) {
+        renderPositionsTable(activePositions);
+        const countBadge = document.getElementById('pos-count-badge');
+        if (countBadge) countBadge.textContent = activePositions.length;
+      }
 
-    // Periodic agent telemetry log
-    if (Math.random() < 0.28) {
-      const simLogs = [
-        `WebSocket feed: SPY @ $548.40 (+0.42%) | VIX=14.78`,
-        `Rust FeatureMatrix updated: 26 rolling factors evaluated in 0.39ms`,
-        `Wheel delta rebalanced: Net portfolio delta safe at +$42.50`,
-        `Regime Transformer heartbeat: Bull Trend confidence 72.8%`,
-        `Kelly Criterion sizing confirmed: 4 active positions, 5.8% capital at risk`,
-        `Alpaca bracket monitor: NVDA IC profit target at 44.2% of max credit ($168 / $380)`
-      ];
-      addLog(simLogs[Math.floor(Math.random() * simLogs.length)], 'info');
+      // Update market clock and pill
+      if (data.market_clock) {
+        const isOpen = Boolean(data.market_clock.is_open);
+        const mktText = document.getElementById('market-status-text');
+        const mktDot = document.getElementById('market-status-dot');
+        if (mktText) mktText.textContent = isOpen ? 'US MARKET: OPEN' : 'US MARKET: CLOSED';
+        if (mktDot) {
+          mktDot.className = isOpen ? 'status-dot' : 'status-dot closed';
+        }
+      }
+
+      // Update Buying Power KPI
+      if (typeof data.buying_power === 'number') {
+        const bpEl = document.getElementById('bp-val');
+        if (bpEl) bpEl.textContent = fmt$(data.buying_power);
+      }
+
+      // Update Live US Market quotes & Crypto Prices in UI
+      if (data.market_prices) {
+        if (data.market_prices['BTC/USD']) {
+          const btcEl = document.getElementById('crypto-btc-price');
+          if (btcEl) btcEl.textContent = fmt$(data.market_prices['BTC/USD']);
+        }
+        if (data.market_prices['ETH/USD']) {
+          const ethEl = document.getElementById('crypto-eth-price');
+          if (ethEl) ethEl.textContent = fmt$(data.market_prices['ETH/USD']);
+        }
+        if (data.market_prices['SOL/USD']) {
+          const solEl = document.getElementById('crypto-sol-price');
+          if (solEl) solEl.textContent = fmt$(data.market_prices['SOL/USD']);
+        }
+      }
+
+      // Update macro regime and VIX
+      if (data.regime) {
+        const regEl = document.getElementById('regime-badge');
+        if (regEl) regEl.textContent = data.regime;
+      }
+      if (data.vix) {
+        const vixEl = document.getElementById('vix-val');
+        if (vixEl) vixEl.textContent = Number(data.vix).toFixed(1);
+      }
+
+      // Live chart updates with actual equity
+      if (equityChart) {
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        equityHistory.push({ t: nowStr, v: currentEquity });
+        if (equityHistory.length > 50) equityHistory.shift();
+        equityChart.data.labels = equityHistory.map(p => p.t);
+        equityChart.data.datasets[0].data = equityHistory.map(p => p.v);
+        equityChart.update('none');
+      }
+
+      const lastUpdate = document.getElementById('last-update');
+      if (lastUpdate && data.last_updated) {
+        lastUpdate.textContent = 'Alpaca Live: ' + new Date(data.last_updated).toLocaleTimeString();
+      }
+    } else {
+      updateKPIs(currentEquity, currentDailyPnl);
     }
   } catch (e) {
     console.error('Polling error:', e);
@@ -483,7 +537,7 @@ function updateKPIs(equity, dailyPnl) {
   const retEl = document.getElementById('equity-return');
   if (retEl) {
     const totalReturn = (equity / STARTING_CAPITAL - 1) * 100;
-    retEl.textContent = `${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(2)}% verified return`;
+    retEl.textContent = `${totalReturn >= 0 ? '+' : ''}${totalReturn.toFixed(3)}% verified return`;
   }
 
   const pnlEl = document.getElementById('pnl-val');
@@ -491,13 +545,15 @@ function updateKPIs(equity, dailyPnl) {
 
   const pnlPctEl = document.getElementById('pnl-pct');
   if (pnlPctEl) {
-    const pct = (dailyPnl / equity) * 100;
-    pnlPctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}% today`;
+    const pct = (dailyPnl / STARTING_CAPITAL) * 100;
+    pnlPctEl.textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(4)}% today`;
     pnlPctEl.className = `kpi-delta ${pct >= 0 ? 'pos' : 'neg'}`;
   }
 
   const lastUpdate = document.getElementById('last-update');
-  if (lastUpdate) lastUpdate.textContent = 'Last update: ' + new Date().toLocaleTimeString();
+  if (lastUpdate && !lastUpdate.textContent.startsWith('Alpaca Live:')) {
+    lastUpdate.textContent = 'Live Synced: ' + new Date().toLocaleTimeString();
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -515,5 +571,6 @@ function addLog(msg, level = 'info') {
 }
 
 function fmt$(v) {
-  return '$' + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+  const num = Number(v) || 0;
+  return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

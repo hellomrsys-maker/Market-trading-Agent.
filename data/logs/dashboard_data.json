@@ -1,23 +1,66 @@
-[
-  {
-    "date": "2026-08-29",
-    "equity": 100180.0,
-    "daily_pnl": 180.0,
-    "n_positions": 2,
-    "regime": "Neutral"
+{
+  "equity": 100000.59,
+  "starting_capital": 100000.0,
+  "cash": 99230.58,
+  "buying_power": 399078.35,
+  "daily_pnl": 0.59,
+  "daily_pnl_pct": 0.0006,
+  "total_return_pct": 0.0006,
+  "n_positions": 1,
+  "positions": [
+    {
+      "symbol": "SPY",
+      "strategy": "EQUITY_LONG",
+      "strike": "1 shares @ $769.42",
+      "dte": "Open",
+      "premium": 769.42,
+      "pnl": 0.6,
+      "current_price": 770.02,
+      "market_value": 770.02
+    }
+  ],
+  "market_clock": {
+    "is_open": true,
+    "next_open": "2026-09-08T09:30:00-04:00",
+    "next_close": "2026-09-04T16:00:00-04:00",
+    "timestamp": "2026-09-04T14:34:22.74901192-04:00"
   },
-  {
-    "date": "2026-08-29",
-    "equity": 100180.0,
-    "daily_pnl": 180.0,
-    "n_positions": 2,
-    "regime": "Neutral"
+  "market_prices": {
+    "SPY": 769.97,
+    "QQQ": 717.64,
+    "AAPL": 321.18,
+    "MSFT": 499.81,
+    "NVDA": 230.29,
+    "AMD": 472.6,
+    "AMZN": 257.33
   },
-  {
-    "date": "2026-08-30",
-    "equity": 100180.0,
-    "daily_pnl": 180.0,
-    "n_positions": 2,
-    "regime": "Neutral"
-  }
-]
+  "regime": "Bull Trend",
+  "regime_id": 0,
+  "regime_probs": [
+    0.724,
+    0.152,
+    0.076,
+    0.048
+  ],
+  "halted": false,
+  "vix": 14.8,
+  "wheel_pos": [],
+  "ic_pos": [],
+  "risk": {
+    "daily_pnl": 0.59,
+    "daily_loss_limit": 2000.0,
+    "position_count": 1,
+    "max_positions": 10,
+    "delta_exp": 0.0,
+    "halted": false
+  },
+  "ai_status": {
+    "transformer": "ready",
+    "ensemble": "ready",
+    "rust": "active",
+    "zero_bridge": "active",
+    "autonomous_profit_maximizer": "active_17_phases"
+  },
+  "trades_today": [],
+  "last_updated": "2026-09-05T00:04:22.634361"
+}

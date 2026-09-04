@@ -108,6 +108,7 @@ body {
 }
 
 .status-dot.halted { background: var(--red); box-shadow: 0 0 8px var(--red-glow); }
+.status-dot.closed { background: var(--yellow); box-shadow: 0 0 8px rgba(245, 158, 11, 0.4); }
 
 @keyframes blink {
   0%, 100% { opacity: 1; transform: scale(1); }

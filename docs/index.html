@@ -23,9 +23,13 @@
     </div>
   </div>
   <div class="header-right">
+    <div class="status-pill" id="market-status-pill">
+      <span class="status-dot" id="market-status-dot"></span>
+      <span id="market-status-text">US MARKET: OPEN</span>
+    </div>
     <div class="status-pill" id="status-pill">
       <span class="status-dot" id="status-dot"></span>
-      <span id="status-text">LIVE AGENT</span>
+      <span id="status-text">ALPACA PAPER LIVE</span>
     </div>
     <div class="clock" id="live-clock">--:--:-- ET</div>
   </div>
@@ -56,27 +60,27 @@
 <section class="kpi-grid">
   <div class="kpi-card" id="kpi-equity">
     <div class="kpi-label">Portfolio Equity</div>
-    <div class="kpi-value" id="equity-val">$111,836</div>
-    <div class="kpi-delta pos" id="equity-return">+11.84% verified return</div>
+    <div class="kpi-value" id="equity-val">$100,000.59</div>
+    <div class="kpi-delta pos" id="equity-return">+0.001% verified return</div>
   </div>
   <div class="kpi-card" id="kpi-pnl">
     <div class="kpi-label">Daily P&L</div>
-    <div class="kpi-value" id="pnl-val">+$342</div>
-    <div class="kpi-delta pos" id="pnl-pct">+0.31% today</div>
+    <div class="kpi-value" id="pnl-val">+$0.59</div>
+    <div class="kpi-delta pos" id="pnl-pct">+0.0006% today</div>
   </div>
-  <div class="kpi-card" id="kpi-winrate">
-    <div class="kpi-label">Backtest Win Rate</div>
-    <div class="kpi-value" style="color: var(--green);">70.7%</div>
-    <div class="kpi-delta pos">118 wins / 49 losses</div>
+  <div class="kpi-card" id="kpi-bp">
+    <div class="kpi-label">Alpaca Buying Power</div>
+    <div class="kpi-value" id="bp-val" style="color: var(--cyan);">$399,078.00</div>
+    <div class="kpi-delta pos">4x Margin · Cash: $99,230.58</div>
   </div>
-  <div class="kpi-card" id="kpi-drawdown">
-    <div class="kpi-label">Max Drawdown</div>
-    <div class="kpi-value" style="color: var(--cyan);">4.4%</div>
-    <div class="kpi-delta neutral">Calmar: 2.69 · Safe</div>
+  <div class="kpi-card" id="kpi-account">
+    <div class="kpi-label">Alpaca Paper Account</div>
+    <div class="kpi-value" style="color: var(--green); font-size: 16px; font-family: var(--mono);">PA3P2YQIYERL</div>
+    <div class="kpi-delta neutral">Options L3 Approved · PDT Safe</div>
   </div>
   <div class="kpi-card" id="kpi-regime">
     <div class="kpi-label">Market Regime</div>
-    <div class="kpi-value regime-badge" id="regime-val">Bull Trend</div>
+    <div class="kpi-value regime-badge" id="regime-badge">Bull Trend</div>
     <div class="kpi-delta" id="regime-sub">Confidence: 72.4%</div>
   </div>
 </section>
@@ -100,7 +104,7 @@
     <div class="panel-header">
       <span class="panel-title">📈 1-Year Historical & Live Equity Growth</span>
       <div class="chart-legend">
-        <span><span class="legend-dot dot-equity"></span> OptionAlpha Portfolio (+11.84%)</span>
+        <span><span class="legend-dot dot-equity"></span> OptionAlpha Portfolio</span>
         <span><span class="legend-dot dot-benchmark"></span> SPY Buy & Hold</span>
       </div>
     </div>
@@ -114,7 +118,7 @@
     <!-- Active Positions -->
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">Active Option & Crypto Positions <span class="tab-badge" id="pos-count-badge">4</span></span>
+        <span class="panel-title">Active Option & Crypto Positions <span class="tab-badge" id="pos-count-badge">1</span></span>
         <span class="panel-sub">Max Capacity: 10 concurrent</span>
       </div>
       <div class="table-responsive">
@@ -122,11 +126,18 @@
           <thead>
             <tr>
               <th>Symbol</th><th>Strategy</th><th>Strike / Range</th>
-              <th>DTE</th><th>Credit</th><th>P&L</th>
+              <th>DTE</th><th>Cost / Credit</th><th>P&L</th>
             </tr>
           </thead>
           <tbody id="positions-body">
-            <!-- Populated via app.js -->
+            <tr>
+              <td><strong>SPY</strong></td>
+              <td><span class="tag-crypto">EQUITY_LONG</span></td>
+              <td>1 shares @ $769.42</td>
+              <td>Open</td>
+              <td>$769.42</td>
+              <td class="kpi-delta pos">+$0.59</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -544,19 +555,19 @@
           <tbody>
             <tr>
               <td><strong>BTC/USD</strong></td>
-              <td>$64,813.70</td>
-              <td class="kpi-delta pos">+2.84%</td>
+              <td id="crypto-btc-price">$79,584.05</td>
+              <td class="kpi-delta pos">+3.42%</td>
               <td><span class="tag-crypto">ACCUMULATING</span></td>
             </tr>
             <tr>
               <td><strong>ETH/USD</strong></td>
-              <td>$3,485.20</td>
+              <td id="crypto-eth-price">$2,240.50</td>
               <td class="kpi-delta pos">+1.92%</td>
               <td><span class="tag-crypto">HOLD</span></td>
             </tr>
             <tr>
               <td><strong>SOL/USD</strong></td>
-              <td>$142.60</td>
+              <td id="crypto-sol-price">$134.20</td>
               <td class="kpi-delta neg">-0.65%</td>
               <td><span class="tag-csp">DIP BUY GATE</span></td>
             </tr>
