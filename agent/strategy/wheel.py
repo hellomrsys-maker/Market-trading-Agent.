@@ -147,8 +147,12 @@ class WheelStrategy:
 
         candidates = []
         for c in chain:
+            c_type = c.get("type") or c.get("option_type") or ("call" if c.get("is_call") else "put")
+            if str(c_type).lower() != option_type.lower():
+                continue
+
             snap = snaps.get(c["symbol"], {})
-            delta = abs(float(snap.get("delta") or c.get("delta") or 0.5))
+            delta = abs(float(snap.get("delta") or c.get("delta") or 0.3))
             bid   = float(snap.get("bid") or c.get("bid") or 0.0)
             ask   = float(snap.get("ask") or c.get("ask") or 0.0)
             mid   = (bid + ask) / 2 if (bid + ask) > 0 else float(c.get("mid", 1.0))
@@ -160,12 +164,12 @@ class WheelStrategy:
             expiry  = date.fromisoformat(str(exp_val))
             dte     = (expiry - today).days
 
-            # Liquidity filter: skip if spread too wide or zero bid
-            if bid <= 0.01 or (ask - bid) > 0.50:
+            # Liquidity filter: skip if zero bid or excessive spread
+            if bid <= 0.01 or (ask - bid) > max(3.0, mid * 0.30):
                 continue
 
-            # Premium filter: must be ≥ min_premium_pct of underlying
-            min_prem = underlying_price * (_cfg.wheel_min_premium_pct / 100)
+            # Premium filter: minimum $0.50 or proportional
+            min_prem = max(0.50, underlying_price * (_cfg.wheel_min_premium_pct / 100) * 0.3)
             if mid < min_prem:
                 continue
 

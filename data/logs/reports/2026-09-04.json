@@ -1,0 +1,74 @@
+{
+  "date": "2026-09-04",
+  "timestamp": "2026-09-04T20:43:26.337024",
+  "account": {
+    "equity": 100000.34,
+    "portfolio": 100000.34,
+    "daily_pnl": 0.33999999999650754,
+    "delta_exp": 0,
+    "n_opt_pos": 0
+  },
+  "daily_pnl": 0.33999999999650754,
+  "total_return_pct": 0.0,
+  "n_positions": 0,
+  "wheel_positions": [],
+  "ic_positions": [],
+  "risk": {
+    "halted": false,
+    "halt_reason": "",
+    "daily_pnl": 0.33999999999650754,
+    "vix": 15.0,
+    "open_positions": {},
+    "position_count": 0,
+    "daily_loss_limit": 2000.0,
+    "max_positions": 10,
+    "vix_threshold": 35.0
+  },
+  "memory": {
+    "total_trades": 1,
+    "win_rate_20": 1.0,
+    "avg_pnl_pct_10": 0.5,
+    "strategy_stats": {
+      "WHEEL_CSP": {
+        "count": 1,
+        "win_rate": 1.0,
+        "avg_pnl_pct": 0.5,
+        "total_pnl": 150.0
+      },
+      "WHEEL_CC": {
+        "count": 0,
+        "win_rate": 0.5,
+        "avg_pnl_pct": 0.0
+      },
+      "IRON_CONDOR": {
+        "count": 0,
+        "win_rate": 0.5,
+        "avg_pnl_pct": 0.0
+      }
+    },
+    "recent_5": [
+      {
+        "symbol": "SPY",
+        "strategy": "WHEEL_CSP",
+        "pnl": 150.0,
+        "reason": "profit_take"
+      }
+    ]
+  },
+  "regime": "Neutral",
+  "ai_status": {
+    "transformer": "fallback",
+    "ensemble": "fallback",
+    "rust": "python",
+    "zero_bridge": "active",
+    "autonomous_profit_maximizer": "active_17_phases"
+  },
+  "trades_today": [],
+  "cumulative_stats": {
+    "trading_days": 5,
+    "cumulative_pnl": 0.34,
+    "max_drawdown_pct": 0.179,
+    "sharpe": -13.2112,
+    "winning_days": 5
+  }
+}

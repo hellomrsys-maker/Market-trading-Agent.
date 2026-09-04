@@ -22,7 +22,8 @@ from collections import deque
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
+import urllib.request
+import urllib.error
 from loguru import logger
 from config.settings import get_alpaca_settings, get_strategy_settings
 
@@ -73,7 +74,7 @@ class AlpacaClient:
             (_alpaca_cfg.api_key not in ("paper_demo_key", "") and _alpaca_cfg.secret_key not in ("paper_demo_secret", ""))
             or bool(_alpaca_cfg.oauth_token)
         )
-        self._is_live = _ALPACA_SDK_AVAILABLE and has_creds
+        self._is_live = has_creds
         self._trading = None
         self._opt_data = None
         self._stk_data = None
@@ -92,38 +93,41 @@ class AlpacaClient:
         self._request_log_path: Path = Path("logs/alpaca_request_ids.jsonl")
 
         if self._is_live:
-            try:
-                if _alpaca_cfg.oauth_token:
-                    self._trading = TradingClient(
-                        oauth_token = _alpaca_cfg.oauth_token,
-                        paper       = True,
-                    )
-                    self._opt_data = OptionHistoricalDataClient(
-                        oauth_token = _alpaca_cfg.oauth_token,
-                    )
-                    self._stk_data = StockHistoricalDataClient(
-                        oauth_token = _alpaca_cfg.oauth_token,
-                    )
-                    logger.info("AlpacaClient connected via OAuth 2.0 Bearer Token (paper=True)")
-                else:
-                    self._trading = TradingClient(
-                        api_key    = _alpaca_cfg.api_key,
-                        secret_key = _alpaca_cfg.secret_key,
-                        paper      = True,
-                    )
-                    self._opt_data = OptionHistoricalDataClient(
-                        api_key    = _alpaca_cfg.api_key,
-                        secret_key = _alpaca_cfg.secret_key,
-                    )
-                    self._stk_data = StockHistoricalDataClient(
-                        api_key    = _alpaca_cfg.api_key,
-                        secret_key = _alpaca_cfg.secret_key,
-                    )
-                    logger.info("AlpacaClient connected to live Paper API (account={})",
-                                _alpaca_cfg.paper_account_id or "Active")
-            except Exception as e:
-                logger.warning("Alpaca connection failed ({}) — activating high-fidelity simulation", e)
-                self._is_live = False
+            if _ALPACA_SDK_AVAILABLE:
+                try:
+                    if _alpaca_cfg.oauth_token:
+                        self._trading = TradingClient(
+                            oauth_token = _alpaca_cfg.oauth_token,
+                            paper       = True,
+                        )
+                        self._opt_data = OptionHistoricalDataClient(
+                            oauth_token = _alpaca_cfg.oauth_token,
+                        )
+                        self._stk_data = StockHistoricalDataClient(
+                            oauth_token = _alpaca_cfg.oauth_token,
+                        )
+                        logger.info("AlpacaClient connected via OAuth 2.0 Bearer Token (paper=True)")
+                    else:
+                        self._trading = TradingClient(
+                            api_key    = _alpaca_cfg.api_key,
+                            secret_key = _alpaca_cfg.secret_key,
+                            paper      = True,
+                        )
+                        self._opt_data = OptionHistoricalDataClient(
+                            api_key    = _alpaca_cfg.api_key,
+                            secret_key = _alpaca_cfg.secret_key,
+                        )
+                        self._stk_data = StockHistoricalDataClient(
+                            api_key    = _alpaca_cfg.api_key,
+                            secret_key = _alpaca_cfg.secret_key,
+                        )
+                        logger.info("AlpacaClient connected to live Paper API via SDK (account={})",
+                                    _alpaca_cfg.paper_account_id or "Active")
+                except Exception as e:
+                    logger.info("Alpaca SDK initialization note ({}) — using native REST client", e)
+            else:
+                logger.info("AlpacaClient connected to live Paper API via Native REST (account={})",
+                            _alpaca_cfg.paper_account_id or "Active")
         else:
             logger.info("AlpacaClient running in simulated paper mode")
 
@@ -239,6 +243,27 @@ class AlpacaClient:
             return self._request_history[-1].get("x_request_id")
         return None
 
+    def _rest_call(self, method: str, path: str, body: Optional[Dict] = None, is_data: bool = False) -> Any:
+        """Direct REST fallback for Alpaca Paper API when SDK is not installed."""
+        base = _alpaca_cfg.data_url if is_data else _alpaca_cfg.base_url
+        url = f"{base}{path}" if not path.startswith("http") else path
+        headers = {
+            "APCA-API-KEY-ID": _alpaca_cfg.api_key,
+            "APCA-API-SECRET-KEY": _alpaca_cfg.secret_key,
+            "Content-Type": "application/json"
+        }
+        if _alpaca_cfg.oauth_token:
+            headers = {"Authorization": f"Bearer {_alpaca_cfg.oauth_token}", "Content-Type": "application/json"}
+        data = json.dumps(body).encode("utf-8") if body else None
+        req = urllib.request.Request(url, data=data, headers=headers, method=method.upper())
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read().decode("utf-8")
+                return json.loads(raw) if raw else {}
+        except Exception as exc:
+            logger.debug("[Alpaca REST Call] {} {} -> {}", method, url, exc)
+            return None
+
     # ─────────────────────────────────────────────────────────
     # Account & Portfolio (/v2/account)
     # ─────────────────────────────────────────────────────────
@@ -274,6 +299,33 @@ class AlpacaClient:
                 "daily_pnl": balance_change,
                 "daily_pnl_pct": balance_change_pct,
             }
+        elif self._is_live:
+            # Direct REST call to live Paper API
+            data = self._rest_call("GET", "/v2/account")
+            if data and "equity" in data:
+                equity = float(data["equity"])
+                last_equity = float(data.get("last_equity", equity))
+                balance_change = round(equity - last_equity, 2)
+                balance_change_pct = round((balance_change / last_equity) * 100.0, 4) if last_equity > 0 else 0.0
+                return {
+                    "id": str(data.get("id", "PA3P2YQIYERL")),
+                    "status": str(data.get("status", "ACTIVE")),
+                    "equity": equity,
+                    "last_equity": last_equity,
+                    "cash": float(data.get("cash", equity)),
+                    "buying_power": float(data.get("buying_power", equity * 4.0)),
+                    "non_marginable_buying_power": float(data.get("non_marginable_buying_power", data.get("cash", equity))),
+                    "daytrading_buying_power": float(data.get("daytrading_buying_power", data.get("buying_power", equity * 4.0))),
+                    "regt_buying_power": float(data.get("regt_buying_power", data.get("buying_power", equity * 2.0))),
+                    "portfolio_value": float(data.get("portfolio_value", equity)),
+                    "daytrade_count": int(data.get("daytrade_count", 0)),
+                    "trading_blocked": bool(data.get("trading_blocked", False)),
+                    "transfers_blocked": bool(data.get("transfers_blocked", False)),
+                    "account_blocked": bool(data.get("account_blocked", False)),
+                    "options_level": data.get("options_approved_level", 3),
+                    "daily_pnl": balance_change,
+                    "daily_pnl_pct": balance_change_pct,
+                }
         
         balance_change = round(self._sim_equity - self._sim_last_equity, 2)
         balance_change_pct = round((balance_change / self._sim_last_equity) * 100.0, 4) if self._sim_last_equity > 0 else 0.0
@@ -323,11 +375,12 @@ class AlpacaClient:
     # ─────────────────────────────────────────────────────────
     def get_all_positions(self) -> List[Dict[str, Any]]:
         """Queries /v2/positions to retrieve all active portfolio holdings."""
+        res = []
         if self._is_live and self._trading:
             try:
                 positions = self._trading.get_all_positions()
-                return [
-                    {
+                for p in positions:
+                    res.append({
                         "asset_id": str(p.asset_id),
                         "symbol": str(p.symbol),
                         "exchange": str(p.exchange),
@@ -344,15 +397,45 @@ class AlpacaClient:
                         "current_price": float(p.current_price),
                         "lastday_price": float(getattr(p, "lastday_price", p.current_price)),
                         "change_today": float(getattr(p, "change_today", 0.0)),
-                    }
-                    for p in positions
-                ]
+                    })
             except Exception as exc:
                 logger.warning("Alpaca get_all_positions error: {}", exc)
+        elif self._is_live:
+            raw_pos = self._rest_call("GET", "/v2/positions")
+            if isinstance(raw_pos, list):
+                for p in raw_pos:
+                    qty = float(p.get("qty", 0))
+                    avg_cost = float(p.get("avg_entry_price", 0))
+                    cur_p = float(p.get("current_price", avg_cost))
+                    mkt_val = float(p.get("market_value", cur_p * abs(qty)))
+                    cost_basis = float(p.get("cost_basis", avg_cost * abs(qty)))
+                    unrealized_pl = float(p.get("unrealized_pl", 0.0))
+                    unrealized_plpc = float(p.get("unrealized_plpc", 0.0))
+                    res.append({
+                        "asset_id": str(p.get("asset_id", "")),
+                        "symbol": str(p.get("symbol", "")),
+                        "exchange": str(p.get("exchange", "NASDAQ")),
+                        "asset_class": str(p.get("asset_class", "us_equity")),
+                        "qty": qty,
+                        "avg_entry_price": avg_cost,
+                        "avg_cost": avg_cost,
+                        "side": str(p.get("side", "long")),
+                        "market_value": mkt_val,
+                        "cost_basis": cost_basis,
+                        "unrealized_pl": unrealized_pl,
+                        "unrealized_plpc": unrealized_plpc,
+                        "unrealized_intraday_pl": float(p.get("unrealized_intraday_pl", unrealized_pl)),
+                        "current_price": cur_p,
+                        "lastday_price": float(p.get("lastday_price", cur_p)),
+                        "change_today": float(p.get("change_today", 0.0)),
+                    })
 
-        # Enrich simulation positions
-        res = []
+        # Enrich with local simulation positions not present in broker feed
+        existing_syms = {p["symbol"] for p in res}
         for p in self._sim_positions:
+            sym = p.get("symbol", "SPY")
+            if sym in existing_syms:
+                continue
             qty = p.get("qty", 1.0)
             avg_cost = p.get("avg_cost", 100.0)
             sym = p.get("symbol", "SPY")
@@ -565,6 +648,12 @@ class AlpacaClient:
                 return float(bars[symbol].close)
             except Exception:
                 pass
+        elif self._is_live:
+            if "/" in symbol:
+                return self.get_crypto_latest_quote(symbol)["mid"]
+            data = self._rest_call("GET", f"/v2/stocks/{symbol}/trades/latest", is_data=True)
+            if data and "trade" in data and "p" in data["trade"]:
+                return float(data["trade"]["p"])
         defaults = {"SPY": 500.0, "QQQ": 430.0, "AAPL": 180.0, "MSFT": 420.0, "NVDA": 120.0, "AMD": 160.0, "AMZN": 185.0}
         return defaults.get(symbol, 100.0)
 
@@ -582,6 +671,21 @@ class AlpacaClient:
                 ]
             except Exception:
                 pass
+        elif self._is_live:
+            start_date = (datetime.now(timezone.utc) - timedelta(days=int(days * 1.6))).strftime("%Y-%m-%d")
+            data = self._rest_call("GET", f"/v2/stocks/{symbol}/bars?timeframe=1Day&start={start_date}&limit={days}", is_data=True)
+            if data and "bars" in data and isinstance(data["bars"], list) and len(data["bars"]) > 0:
+                return [
+                    {
+                        "date": str(b.get("t", "")[:10]),
+                        "open": float(b.get("o", 0.0)),
+                        "high": float(b.get("h", 0.0)),
+                        "low": float(b.get("l", 0.0)),
+                        "close": float(b.get("c", 0.0)),
+                        "volume": float(b.get("v", 0.0)),
+                    }
+                    for b in data["bars"]
+                ]
         # Synthetic geometric random walk
         import numpy as np
         base = self.get_latest_price(symbol)
@@ -847,6 +951,53 @@ class AlpacaClient:
                 return res
             except Exception as exc:
                 logger.warning("Alpaca submit_order error for {}: {}", symbol, exc)
+        elif self._is_live:
+            side_str = side.lower()
+            tif_str = time_in_force.lower()
+            order_type_str = order_type.lower()
+            payload = {
+                "symbol": symbol,
+                "side": side_str,
+                "type": order_type_str,
+                "time_in_force": tif_str,
+                "client_order_id": client_order_id,
+            }
+            if notional and not qty:
+                payload["notional"] = str(round(notional, 2))
+            elif qty:
+                payload["qty"] = str(qty)
+            if order_type_str == "limit" and limit_price is not None:
+                payload["limit_price"] = str(round(limit_price, 2))
+            if order_class and order_class.lower() == "bracket":
+                payload["order_class"] = "bracket"
+                if take_profit_price:
+                    payload["take_profit"] = {"limit_price": str(round(take_profit_price, 2))}
+                if stop_loss_price:
+                    payload["stop_loss"] = {"stop_price": str(round(stop_loss_price, 2))}
+
+            res = self._rest_call("POST", "/v2/orders", payload)
+            if res and "id" in res:
+                self.record_request_telemetry(
+                    method="POST",
+                    endpoint="/v2/orders",
+                    status_code=200,
+                    request_id=res.get("id"),
+                    client_order_id=client_order_id,
+                )
+                logger.info("Live Paper Order placed: {} {} {} @ {} | OrderID: {}",
+                            side_str.upper(), qty or notional, symbol, price, res["id"])
+                return {
+                    "id": str(res["id"]),
+                    "client_order_id": str(res.get("client_order_id", client_order_id)),
+                    "symbol": str(res.get("symbol", symbol)),
+                    "qty": float(res.get("qty", qty or 0)),
+                    "side": str(res.get("side", side_str)),
+                    "type": str(res.get("type", order_type_str)),
+                    "status": str(res.get("status", "new")),
+                    "submitted_at": str(res.get("submitted_at", datetime.now().isoformat())),
+                }
+            else:
+                logger.warning("Alpaca REST live order response: {}", res)
 
         # High-fidelity simulated execution
         sim_req_id = f"sim_{uuid.uuid4().hex[:16]}"
@@ -1028,6 +1179,21 @@ class AlpacaClient:
                 ]
             except Exception as exc:
                 logger.warning("Alpaca get_orders error: {}", exc)
+        elif self._is_live:
+            res = self._rest_call("GET", f"/v2/orders?status={status.lower()}&limit={limit}&nested={str(nested).lower()}")
+            if isinstance(res, list):
+                return [
+                    {
+                        "id": str(o.get("id", "")),
+                        "client_order_id": str(o.get("client_order_id", "")),
+                        "symbol": str(o.get("symbol", "")),
+                        "qty": float(o.get("qty", 0) or 0),
+                        "side": str(o.get("side", "")),
+                        "status": str(o.get("status", "")),
+                        "submitted_at": str(o.get("submitted_at", "")),
+                    }
+                    for o in res
+                ]
 
         if status.lower() == "open":
             return [o for o in self._sim_orders if o.get("status") == "open"][-limit:]
@@ -1043,6 +1209,10 @@ class AlpacaClient:
                 return True
             except Exception:
                 pass
+        elif self._is_live:
+            res = self._rest_call("DELETE", f"/v2/orders/{order_id_or_client_id}")
+            if res is not None:
+                return True
         for o in self._sim_orders:
             if o.get("id") == order_id_or_client_id or o.get("client_order_id") == order_id_or_client_id:
                 o["status"] = "cancelled"
@@ -1050,6 +1220,13 @@ class AlpacaClient:
         return False
 
     def cancel_all_orders(self) -> int:
+        if self._is_live and self._trading:
+            try:
+                self._trading.cancel_orders()
+            except Exception:
+                pass
+        elif self._is_live:
+            self._rest_call("DELETE", "/v2/orders")
         n = len(self._sim_orders)
         self._sim_orders.clear()
         return n

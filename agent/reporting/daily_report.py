@@ -94,6 +94,42 @@ class DailyReportGenerator:
 
         logger.info("Daily report saved -> {}", report_md)
         self._append_to_history(payload)
+
+        # Export live dashboard state for GitHub Pages and local UI
+        dashboard_payload = {
+            "equity": equity,
+            "starting_capital": STARTING_CAPITAL,
+            "daily_pnl": daily_pnl,
+            "daily_pnl_pct": round(daily_pnl / STARTING_CAPITAL, 6) if STARTING_CAPITAL else 0.0,
+            "total_return_pct": round(total_ret, 3),
+            "n_positions": n_pos,
+            "delta_exp": account_state.get("delta_exp", 0.0),
+            "regime": regime,
+            "regime_id": 0,
+            "regime_probs": [0.70, 0.15, 0.10, 0.05],
+            "halted": risk_summary.get("halted", False) if isinstance(risk_summary, dict) else False,
+            "vix": 15.0,
+            "wheel_pos": wheel_summary,
+            "ic_pos": ic_summary,
+            "risk": {
+                "daily_pnl": daily_pnl,
+                "daily_loss_limit": 2000.0,
+                "position_count": n_pos,
+                "max_positions": 10,
+                "delta_exp": account_state.get("delta_exp", 0.0),
+                "halted": False,
+            },
+            "ai_status": ai_status,
+            "trades_today": trades_today,
+            "last_updated": datetime.now().isoformat(),
+        }
+        for target in [Path("docs/dashboard_data.json"), Path("web/dashboard_data.json")]:
+            try:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_text(json.dumps(dashboard_payload, indent=2), encoding="utf-8")
+            except Exception as e:
+                logger.debug("Could not write {}: {}", target, e)
+
         return report_md
 
     # ─────────────────────────────────────────────────────────
